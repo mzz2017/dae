@@ -109,6 +109,10 @@ jobs:
         if: matrix.goarch == 'amd64'
         run: ./build/dae-$ASSET_NAME --version
 
+      - name: Submodule status
+        if: github.event_name == 'release' && matrix.goarch == 'amd64'
+        run: git submodule status > submodule_status.txt
+
       - name: Create ZIP archive and Signature
         run: |
           pushd build || exit 1
@@ -127,16 +131,26 @@ jobs:
           name: dae-${{ steps.get_filename.outputs.ASSET_NAME }}.zip
           path: build/*
 
+      - name: Upload submodule status file to GitHub release
+        uses: svenstaro/upload-release-action@v2
+        if: github.event_name == 'release' && matrix.goarch == 'amd64'
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: submodule_status.txt
+          overwrite: true
+          tag: ${{ github.ref }}
+
       - name: Upload files to GitHub release
         uses: svenstaro/upload-release-action@v2
         if: github.event_name == 'release'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
-          file: ./dae-${{ steps.get_filename.outputs.ASSET_NAME }}.zip*
+          file: dae-${{ steps.get_filename.outputs.ASSET_NAME }}.zip*
           overwrite: true
           tag: ${{ github.ref }}
-  
+
   docker:
     runs-on: ubuntu-22.04
     steps:
